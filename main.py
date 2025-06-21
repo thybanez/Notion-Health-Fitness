@@ -13,12 +13,10 @@ notion = Client(auth=NOTION_API_KEY)
 # Get or create a Daily Log entry by date
 def get_or_create_daily_log_page(date_str):
     response = notion.databases.query(
-        {
-            "database_id": DAILY_LOG_DB_ID,
-            "filter": {
-                "property": "Log Date",
-                "date": {"equals": date_str}
-            }
+        database_id=DAILY_LOG_DB_ID,
+        filter={
+            "property": "Log Date",
+            "date": {"equals": date_str}
         }
     )
     results = response.get("results")
@@ -26,11 +24,9 @@ def get_or_create_daily_log_page(date_str):
         return results[0]["id"]
     else:
         new_page = notion.pages.create(
-            {
-                "parent": {"database_id": DAILY_LOG_DB_ID},
-                "properties": {
-                    "Log Date": {"date": {"start": date_str}}
-                }
+            parent={"database_id": DAILY_LOG_DB_ID},
+            properties={
+                "Log Date": {"date": {"start": date_str}}
             }
         )
         return new_page["id"]
@@ -41,21 +37,19 @@ def create_food_entry(date_str, meal, description, calories, protein, carbs, fat
         daily_log_id = get_or_create_daily_log_page(date_str)
 
         notion.pages.create(
-            {
-                "parent": {"database_id": FOOD_LOG_DB_ID},
-                "properties": {
-                    "Date": {"date": {"start": date_str}},
-                    "Meal": {"select": {"name": meal}},
-                    "Food Description": {"rich_text": [{"text": {"content": description}}]},
-                    "Calories (kcal)": {"number": calories},
-                    "Protein (g)": {"number": protein},
-                    "Carbs (g)": {"number": carbs},
-                    "Fat (g)": {"number": fat},
-                    "Total Sugar (g)": {"number": sugar},
-                    "High Sugar?": {"checkbox": high_sugar},
-                    "Cholesterol Risk": {"select": {"name": cholesterol_risk}},
-                    "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
-                }
+            parent={"database_id": FOOD_LOG_DB_ID},
+            properties={
+                "Date": {"date": {"start": date_str}},
+                "Meal": {"select": {"name": meal}},
+                "Food Description": {"rich_text": [{"text": {"content": description}}]},
+                "Calories (kcal)": {"number": calories},
+                "Protein (g)": {"number": protein},
+                "Carbs (g)": {"number": carbs},
+                "Fat (g)": {"number": fat},
+                "Total Sugar (g)": {"number": sugar},
+                "High Sugar?": {"checkbox": high_sugar},
+                "Cholesterol Risk": {"select": {"name": cholesterol_risk}},
+                "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
             }
         )
         print(f"✅ Logged: {meal} on {date_str}")
@@ -69,15 +63,13 @@ def create_workout_entry(date_str, workout_type, duration_minutes, notes=""):
         daily_log_id = get_or_create_daily_log_page(date_str)
 
         notion.pages.create(
-            {
-                "parent": {"database_id": WORKOUT_LOG_DB_ID},
-                "properties": {
-                    "Date": {"date": {"start": date_str}},
-                    "Type": {"select": {"name": workout_type}},
-                    "Duration (mins)": {"number": duration_minutes},
-                    "Notes": {"rich_text": [{"text": {"content": notes}}]},
-                    "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
-                }
+            parent={"database_id": WORKOUT_LOG_DB_ID},
+            properties={
+                "Date": {"date": {"start": date_str}},
+                "Type": {"select": {"name": workout_type}},
+                "Duration (mins)": {"number": duration_minutes},
+                "Notes": {"rich_text": [{"text": {"content": notes}}]},
+                "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
             }
         )
         print(f"✅ Workout logged for {date_str}: {workout_type}")
@@ -85,10 +77,8 @@ def create_workout_entry(date_str, workout_type, duration_minutes, notes=""):
     except Exception as e:
         print(f"❌ Workout entry failed: {e}")
 
-# ---- TEST OR BACKFILL SECTION ----
+# TEST SECTION (Clear once working)
 def main():
-    # ⛔️ Only keep these when testing manually. Clear after pushing backfill data!
-
     create_food_entry(
         date_str="2025-06-20",
         meal="Breakfast",
