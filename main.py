@@ -15,7 +15,7 @@ def get_daily_log_page_id(date_str):
         **{
             "database_id": DAILY_LOG_DB_ID,
             "filter": {
-                "property": "Date",
+                "property": "Log Date",
                 "date": {
                     "equals": date_str
                 }
