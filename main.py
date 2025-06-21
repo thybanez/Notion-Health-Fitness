@@ -92,6 +92,25 @@ def log_entry():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/log/food", methods=["POST"])
+def log_food_entry():
+    data = request.get_json()
+    try:
+        create_food_entry(data)
+        return jsonify({"status": "success", "message": "Food entry logged"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/log/workout", methods=["POST"])
+def log_workout_entry():
+    data = request.get_json()
+    try:
+        create_workout_entry(data)
+        return jsonify({"status": "success", "message": "Workout entry logged"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
