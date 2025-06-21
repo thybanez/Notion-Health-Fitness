@@ -95,6 +95,8 @@ def log_entry():
 @app.route("/log/food", methods=["POST"])
 def log_food_entry():
     data = request.get_json()
+    print("🔎 Incoming payload:", data)
+    
     try:
         create_food_entry(data)
         return jsonify({"status": "success", "message": "Food entry logged"})
