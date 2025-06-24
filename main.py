@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import os
 from notion_client import Client
-from datetime import datetime
 
 app = Flask(__name__)
 
@@ -13,17 +12,16 @@ DAILY_LOG_DB_ID = os.environ["DAILY_LOG_DB_ID"]
 
 # Utility: Create or get Daily Log entry
 def get_or_create_daily_log_page(date_str):
-    response = notion.databases.query(
+    resp = notion.databases.query(
         database_id=DAILY_LOG_DB_ID,
         filter={
             "property": "Log Date",
             "date": {"equals": date_str}
         }
     )
-    results = response.get("results")
+    results = resp.get("results", [])
     if results:
         return results[0]["id"]
-
     new_page = notion.pages.create(
         parent={"database_id": DAILY_LOG_DB_ID},
         properties={
@@ -34,45 +32,45 @@ def get_or_create_daily_log_page(date_str):
 
 # Create a food entry
 def create_food_entry(data):
-    date_str = data["date"]
-    daily_log_id = get_or_create_daily_log_page(date_str)
+    date_str      = data["date"]
+    daily_log_id  = get_or_create_daily_log_page(date_str)
 
     notion.pages.create(
         parent={"database_id": FOOD_LOG_DB_ID},
         properties={
-            "Date": {"date": {"start": date_str}},
-            "Meal": {"select": {"name": data["meal"]}},
+            "Date":             {"date":      {"start": date_str}},
+            "Meal":             {"select":    {"name": data["meal"]}},
             "Food Description": {
                 "rich_text": [{"text": {"content": data["description"]}}]
             },
-            "Calories (kcal)": {"number": data["calories"]},
-            "Protein (g)": {"number": data["protein"]},
-            "Carbs (g)": {"number": data["carbs"]},
-            "Fat (g)": {"number": data["fat"]},
-            "Total Sugar (g)": {"number": data["sugar"]},
-            "High Sugar?": {"checkbox": data["high_sugar"]},
-            "Cholesterol Risk": {"select": {"name": data["cholesterol_risk"]}},
-            "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
+            "Calories (kcal)":  {"number":    data["calories"]},
+            "Protein (g)":      {"number":    data["protein"]},
+            "Carbs (g)":        {"number":    data["carbs"]},
+            "Fat (g)":          {"number":    data["fat"]},
+            "Total Sugar (g)":  {"number":    data["sugar"]},
+            "High Sugar?":      {"checkbox":  data["high_sugar"]},
+            "Cholesterol Risk": {"select":    {"name": data["cholesterol_risk"]}},
+            "Date (Daily Log)": {"relation":  [{"id": daily_log_id}]}
         }
     )
 
 # Create a workout entry
 def create_workout_entry(data):
-    date_str = data["date"]
-    daily_log_id = get_or_create_daily_log_page(date_str)
+    date_str      = data["date"]
+    daily_log_id  = get_or_create_daily_log_page(date_str)
 
     notion.pages.create(
         parent={"database_id": WORKOUT_LOG_DB_ID},
         properties={
-            "Date": {"date": {"start": date_str}},
-            "Workout Type": {"select": {"name": data["workout_type"]}},
-            "Duration (min)": {"number": data["duration"]},
+            "Date":               {"date":      {"start": date_str}},
+            "Workout Type":       {"select":    {"name": data["workout_type"]}},
+            "Duration (min)":     {"number":    data["duration"]},
             "Calories Burned (kcal)": {"number": data["calories_burned"]},
-            "RPE (1-10)": {"number": data["rpe"]},
+            "RPE (1-10)":         {"number":    data["rpe"]},
             "Description": {
                 "rich_text": [{"text": {"content": data["description"]}}]
             },
-            "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
+            "Date (Daily Log)":   {"relation":  [{"id": daily_log_id}]}
         }
     )
 
@@ -80,13 +78,15 @@ def create_workout_entry(data):
 def home():
     return "✅ Notion logging service is running!"
 
+# General log endpoint
 @app.route("/log", methods=["POST"])
 def log_entry():
     data = request.get_json()
     try:
-        if data.get("type") == "food":
+        t = data.get("type")
+        if t == "food":
             create_food_entry(data)
-        elif data.get("type") == "workout":
+        elif t == "workout":
             create_workout_entry(data)
         else:
             return jsonify({"status": "error", "message": "Invalid entry type"}), 400
@@ -94,6 +94,7 @@ def log_entry():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+# Dedicated food log endpoint
 @app.route("/log/food", methods=["POST"])
 def log_food_endpoint():
     data = request.get_json()
@@ -103,6 +104,7 @@ def log_food_endpoint():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+# Dedicated workout log endpoint
 @app.route("/log/workout", methods=["POST"])
 def log_workout_endpoint():
     data = request.get_json()
@@ -111,6 +113,68 @@ def log_workout_endpoint():
         return jsonify({"status": "success", "message": "Workout entry logged"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# Fetch food entries in a date range
+@app.route("/entries/food", methods=["POST"])
+def get_food_entries():
+    data = request.get_json()
+    start = data["start_date"]
+    end   = data["end_date"]
+    resp = notion.databases.query(
+        database_id=FOOD_LOG_DB_ID,
+        filter={
+            "property": "Date",
+            "date": {
+                "on_or_after": start,
+                "on_or_before": end
+            }
+        }
+    )
+    entries = []
+    for page in resp.get("results", []):
+        p = page["properties"]
+        entries.append({
+            "date":             p["Date"]["date"]["start"],
+            "meal":             p["Meal"]["select"]["name"],
+            "description":      "".join(rt["plain_text"] for rt in p["Food Description"]["rich_text"]),
+            "calories":         p["Calories (kcal)"]["number"],
+            "protein":          p["Protein (g)"]["number"],
+            "carbs":            p["Carbs (g)"]["number"],
+            "fat":              p["Fat (g)"]["number"],
+            "sugar":            p["Total Sugar (g)"]["number"],
+            "high_sugar":       p["High Sugar?"]["checkbox"],
+            "cholesterol_risk": p["Cholesterol Risk"]["select"]["name"]
+        })
+    return jsonify(entries), 200
+
+# Fetch workout entries in a date range
+@app.route("/entries/workout", methods=["POST"])
+def get_workout_entries():
+    data = request.get_json()
+    start = data["start_date"]
+    end   = data["end_date"]
+    resp = notion.databases.query(
+        database_id=WORKOUT_LOG_DB_ID,
+        filter={
+            "property": "Date",
+            "date": {
+                "on_or_after": start,
+                "on_or_before": end
+            }
+        }
+    )
+    entries = []
+    for page in resp.get("results", []):
+        p = page["properties"]
+        entries.append({
+            "date":            p["Date"]["date"]["start"],
+            "workout_type":    p["Workout Type"]["select"]["name"],
+            "duration":        p["Duration (min)"]["number"],
+            "calories_burned": p["Calories Burned (kcal)"]["number"],
+            "rpe":             p["RPE (1-10)"]["number"],
+            "description":     "".join(rt["plain_text"] for rt in p["Description"]["rich_text"])
+        })
+    return jsonify(entries), 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
