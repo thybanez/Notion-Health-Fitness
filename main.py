@@ -13,36 +13,38 @@ DAILY_LOG_DB_ID = os.environ["DAILY_LOG_DB_ID"]
 
 # Utility: Create or get Daily Log entry
 def get_or_create_daily_log_page(date_str):
-    response = notion.databases.query({
-        "database_id": DAILY_LOG_DB_ID,
-        "filter": {
+    response = notion.databases.query(
+        database_id=DAILY_LOG_DB_ID,
+        filter={
             "property": "Log Date",
             "date": {"equals": date_str}
         }
-    })
+    )
     results = response.get("results")
     if results:
         return results[0]["id"]
-    else:
-        new_page = notion.pages.create({
-            parent={"database_id": DAILY_LOG_DB_ID},
-            properties={
-                "Log Date": {"date": {"start": date_str}}
-            }
-        })
-        return new_page["id"]
 
-# Create food entry
+    new_page = notion.pages.create(
+        parent={"database_id": DAILY_LOG_DB_ID},
+        properties={
+            "Log Date": {"date": {"start": date_str}}
+        }
+    )
+    return new_page["id"]
+
+# Create a food entry
 def create_food_entry(data):
     date_str = data["date"]
     daily_log_id = get_or_create_daily_log_page(date_str)
 
-    notion.pages.create({
+    notion.pages.create(
         parent={"database_id": FOOD_LOG_DB_ID},
         properties={
             "Date": {"date": {"start": date_str}},
             "Meal": {"select": {"name": data["meal"]}},
-            "Food Description": {"rich_text": [{"text": {"content": data["description"]}}]},
+            "Food Description": {
+                "rich_text": [{"text": {"content": data["description"]}}]
+            },
             "Calories (kcal)": {"number": data["calories"]},
             "Protein (g)": {"number": data["protein"]},
             "Carbs (g)": {"number": data["carbs"]},
@@ -52,14 +54,14 @@ def create_food_entry(data):
             "Cholesterol Risk": {"select": {"name": data["cholesterol_risk"]}},
             "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
         }
-    })
+    )
 
-# Create workout entry
+# Create a workout entry
 def create_workout_entry(data):
     date_str = data["date"]
     daily_log_id = get_or_create_daily_log_page(date_str)
 
-    notion.pages.create({
+    notion.pages.create(
         parent={"database_id": WORKOUT_LOG_DB_ID},
         properties={
             "Date": {"date": {"start": date_str}},
@@ -67,10 +69,12 @@ def create_workout_entry(data):
             "Duration (min)": {"number": data["duration"]},
             "Calories Burned (kcal)": {"number": data["calories_burned"]},
             "RPE (1-10)": {"number": data["rpe"]},
-            "Description": {"rich_text": [{"text": {"content": data["description"]}}]},
+            "Description": {
+                "rich_text": [{"text": {"content": data["description"]}}]
+            },
             "Date (Daily Log)": {"relation": [{"id": daily_log_id}]}
         }
-    })
+    )
 
 @app.route("/", methods=["GET"])
 def home():
@@ -79,40 +83,35 @@ def home():
 @app.route("/log", methods=["POST"])
 def log_entry():
     data = request.get_json()
-
     try:
-        if data["type"] == "food":
+        if data.get("type") == "food":
             create_food_entry(data)
-            return jsonify({"status": "success", "message": "Food entry logged"})
-        elif data["type"] == "workout":
+        elif data.get("type") == "workout":
             create_workout_entry(data)
-            return jsonify({"status": "success", "message": "Workout entry logged"})
         else:
             return jsonify({"status": "error", "message": "Invalid entry type"}), 400
+        return jsonify({"status": "success", "message": "Entry logged"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/log/food", methods=["POST"])
-def log_food_entry():
+def log_food_endpoint():
     data = request.get_json()
-    print("🔎 Incoming payload:", data)
-    
     try:
         create_food_entry(data)
-        return jsonify({"status": "success", "message": "Food entry logged"})
+        return jsonify({"status": "success", "message": "Food entry logged"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/log/workout", methods=["POST"])
-def log_workout_entry():
+def log_workout_endpoint():
     data = request.get_json()
     try:
         create_workout_entry(data)
-        return jsonify({"status": "success", "message": "Workout entry logged"})
+        return jsonify({"status": "success", "message": "Workout entry logged"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
