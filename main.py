@@ -25,8 +25,8 @@ def get_or_create_daily_log_page(date_str):
         return results[0]["id"]
     else:
         new_page = notion.pages.create({
-            "parent": {"database_id": DAILY_LOG_DB_ID},
-            "properties": {
+            parent={"database_id": DAILY_LOG_DB_ID},
+            properties={
                 "Log Date": {"date": {"start": date_str}}
             }
         })
@@ -38,8 +38,8 @@ def create_food_entry(data):
     daily_log_id = get_or_create_daily_log_page(date_str)
 
     notion.pages.create({
-        "parent": {"database_id": FOOD_LOG_DB_ID},
-        "properties": {
+        parent={"database_id": FOOD_LOG_DB_ID},
+        properties={
             "Date": {"date": {"start": date_str}},
             "Meal": {"select": {"name": data["meal"]}},
             "Food Description": {"rich_text": [{"text": {"content": data["description"]}}]},
@@ -60,8 +60,8 @@ def create_workout_entry(data):
     daily_log_id = get_or_create_daily_log_page(date_str)
 
     notion.pages.create({
-        "parent": {"database_id": WORKOUT_LOG_DB_ID},
-        "properties": {
+        parent={"database_id": WORKOUT_LOG_DB_ID},
+        properties={
             "Date": {"date": {"start": date_str}},
             "Type": {"select": {"name": data["workout_type"]}},
             "Duration (min)": {"number": data["duration"]},
