@@ -65,7 +65,7 @@ def create_workout_entry(data):
         parent={"database_id": WORKOUT_LOG_DB_ID},
         properties={
             "Date": {"date": {"start": date_str}},
-            "Type": {"select": {"name": data["workout_type"]}},
+            "Workout Type": {"select": {"name": data["workout_type"]}},
             "Duration (min)": {"number": data["duration"]},
             "Calories Burned (kcal)": {"number": data["calories_burned"]},
             "RPE (1-10)": {"number": data["rpe"]},
