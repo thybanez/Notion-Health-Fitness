@@ -9,7 +9,7 @@ notion = Client(auth=os.environ["NOTION_API_KEY"])
 FOOD_LOG_DB_ID = os.environ["FOOD_LOG_DB_ID"]
 WORKOUT_LOG_DB_ID = os.environ["WORKOUT_LOG_DB_ID"]
 DAILY_LOG_DB_ID = os.environ["DAILY_LOG_DB_ID"]
-GYM_LOG_DB_ID = os.environ["GYM_LOG_DB_ID"]  # New gym log database
+GYM_LOG_DB_ID = os.environ["GYM_LOG_DB_ID"]
 
 # Utility: Create or get Daily Log entry
 def get_or_create_daily_log_page(date_str):
@@ -79,8 +79,8 @@ def create_workout_entry(data):
 def create_gym_log_entry(data):
     date_str = data["date"]
     properties = {
+        "Exercise": {"title": [{"text": {"content": data["exercise"]}}]},  # Title property!
         "Date": {"date": {"start": date_str}},
-        "Exercise": {"title": [{"text": {"content": data["exercise"]}}]},
         "Weight": {"rich_text": [{"text": {"content": str(data.get("weight", ""))}}]},
         "Reps / Time": {"rich_text": [{"text": {"content": data.get("reps_time", "")}}]},
         "Sets": {"number": data.get("sets", 0)},
